@@ -40,39 +40,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <svg width="80" height="80" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="lg1" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#00cfff"/>
-                  <stop offset="45%" stopColor="#7b3fbe"/>
-                  <stop offset="100%" stopColor="#ff2d78"/>
-                </linearGradient>
-                <linearGradient id="lgLeft" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#00aaff"/>
-                  <stop offset="100%" stopColor="#001a4d"/>
-                </linearGradient>
-                <linearGradient id="lgRight" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#4a003a"/>
-                  <stop offset="100%" stopColor="#ff2d78"/>
-                </linearGradient>
-                <linearGradient id="lgCross" x1="0" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#00aaff"/>
-                  <stop offset="50%" stopColor="#8a2be2"/>
-                  <stop offset="100%" stopColor="#ff2d78"/>
-                </linearGradient>
-              </defs>
-              <circle cx="100" cy="100" r="94" stroke="url(#lg1)" strokeWidth="10" fill="none"/>
-              <circle cx="100" cy="100" r="81" stroke="url(#lg1)" strokeWidth="2.5" fill="none"/>
-              <circle cx="100" cy="100" r="79" fill="white"/>
-              <rect x="38" y="28" width="38" height="144" rx="4" fill="url(#lgLeft)"/>
-              <rect x="43" y="33" width="28" height="134" rx="2" fill="#0a1a3a"/>
-              <rect x="124" y="28" width="38" height="144" rx="4" fill="url(#lgRight)"/>
-              <rect x="129" y="33" width="28" height="134" rx="2" fill="#2a001a"/>
-              <rect x="38" y="85" width="124" height="30" rx="3" fill="url(#lgCross)"/>
-              <rect x="43" y="89" width="114" height="22" rx="2" fill="#1a0830" opacity="0.85"/>
-              <circle cx="18" cy="100" r="10" fill="#00aaff"/>
-              <circle cx="182" cy="100" r="10" fill="#ff2d78"/>
-            </svg>
+            <img src="/logo.png" alt="Hierarchy Music" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover' }} />
           </div>
           <div className="text-xl font-black text-white">Hierarchy Music</div>
           <div className="text-[11px] text-zinc-600 mt-1 uppercase tracking-widest">

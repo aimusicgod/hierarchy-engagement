@@ -18,77 +18,14 @@ const MGR_NAV = [
 
 function HierarchyLogo({ size = 44 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 200 200"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ flexShrink: 0 }}
-    >
-      <defs>
-        {/* Main gradient: blue top-left → purple → pink bottom-right */}
-        <linearGradient id="g1" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stopColor="#00cfff" />
-          <stop offset="45%"  stopColor="#7b3fbe" />
-          <stop offset="100%" stopColor="#ff2d78" />
-        </linearGradient>
-
-        {/* Left bar of H: blue → dark navy */}
-        <linearGradient id="gLeft" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%"   stopColor="#00aaff" />
-          <stop offset="100%" stopColor="#001a4d" />
-        </linearGradient>
-
-        {/* Right bar of H: dark maroon → pink */}
-        <linearGradient id="gRight" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%"   stopColor="#4a003a" />
-          <stop offset="100%" stopColor="#ff2d78" />
-        </linearGradient>
-
-        {/* Crossbar gradient */}
-        <linearGradient id="gCross" x1="0" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stopColor="#00aaff" />
-          <stop offset="50%"  stopColor="#8a2be2" />
-          <stop offset="100%" stopColor="#ff2d78" />
-        </linearGradient>
-      </defs>
-
-      {/* ── OUTER THICK RING (gradient stroke) ── */}
-      <circle cx="100" cy="100" r="94" stroke="url(#g1)" strokeWidth="10" fill="none" />
-
-      {/* ── THIN INNER RING ── */}
-      <circle cx="100" cy="100" r="81" stroke="url(#g1)" strokeWidth="2.5" fill="none" />
-
-      {/* ── WHITE FILL ── */}
-      <circle cx="100" cy="100" r="79" fill="white" />
-
-      {/* ────── LEFT VERTICAL BAR OF H ────── */}
-      {/* Outer gradient outline */}
-      <rect x="38" y="28" width="38" height="144" rx="4" fill="url(#gLeft)" />
-      {/* Dark inner fill (creates the outlined look) */}
-      <rect x="43" y="33" width="28" height="134" rx="2" fill="#0a1a3a" />
-
-      {/* ────── RIGHT VERTICAL BAR OF H ────── */}
-      {/* Outer gradient outline */}
-      <rect x="124" y="28" width="38" height="144" rx="4" fill="url(#gRight)" />
-      {/* Dark inner fill */}
-      <rect x="129" y="33" width="28" height="134" rx="2" fill="#2a001a" />
-
-      {/* ────── CROSSBAR ────── */}
-      {/* Outer gradient outline */}
-      <rect x="38" y="85" width="124" height="30" rx="3" fill="url(#gCross)" />
-      {/* Dark inner fill */}
-      <rect x="43" y="89" width="114" height="22" rx="2" fill="#1a0830" opacity="0.85" />
-
-      {/* ────── BLUE DOT (left) ────── */}
-      <circle cx="18" cy="100" r="10" fill="#00aaff" />
-
-      {/* ────── PINK DOT (right) ────── */}
-      <circle cx="182" cy="100" r="10" fill="#ff2d78" />
-    </svg>
+    <img
+      src="/logo.png"
+      alt="Hierarchy Music"
+      style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+    />
   )
 }
+
 
 export default function Sidebar({ page, onNavigate, isOwner, isManagerView, previewMgrId, setPreviewMgrId, managers, mobileOpen, onCloseMobile }) {
   const { user, signOut } = useAuth()

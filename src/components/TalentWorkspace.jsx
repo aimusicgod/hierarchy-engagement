@@ -11,7 +11,7 @@ const TABS = [
   { id: 'violations', label: 'Violations' },
 ]
 
-export default function TalentWorkspace({ talentId, allTalent, managers, onClose, onRefresh }) {
+export default function TalentWorkspace({ talentId, allTalent, managers, onClose, onRefresh, onOpenPodDetail }) {
   const talent = allTalent?.find(t => t.id === talentId)
   const [tab, setTab] = useState('overview')
   const { pods, refetch: refetchPods, addPod, deletePod } = usePods(talentId)
@@ -47,7 +47,7 @@ export default function TalentWorkspace({ talentId, allTalent, managers, onClose
       </div>
       <div className="flex-1 overflow-y-auto p-5">
         {tab === 'overview'   && <OverviewTab allMembers={allMembers} violations={violations} pods={pods} />}
-        {tab === 'pods'       && <PodsTab pods={pods} addPod={addPod} deletePod={deletePod} onRefresh={() => { refetchPods(); onRefresh() }} />}
+        {tab === 'pods'       && <PodsTab pods={pods} addPod={addPod} deletePod={deletePod} onRefresh={() => { refetchPods(); onRefresh() }} onOpenPodDetail={onOpenPodDetail} />}
         {tab === 'members'    && <MembersTab allMembers={allMembers} pods={pods} />}
         {tab === 'sessions'   && <SessionsTab sessions={sessions} pods={pods} createSession={createSession} />}
         {tab === 'violations' && <ViolationsTab violations={violations} />}
@@ -97,7 +97,7 @@ function OverviewTab({ allMembers, violations, pods }) {
   )
 }
 
-function PodsTab({ pods, addPod, deletePod, onRefresh }) {
+function PodsTab({ pods, addPod, deletePod, onRefresh, onOpenPodDetail }) {
   const [showAdd,setShowAdd]=useState(false); const [name,setName]=useState(''); const [plat,setPlat]=useState('ig'); const [saving,setSaving]=useState(false)
   async function doAdd(){if(!name.trim())return;setSaving(true);try{await addPod({name:name.trim(),platform:plat});setName('');setShowAdd(false);toast('Pod added!');onRefresh()}catch(e){toast('Error: '+e.message)}setSaving(false)}
   async function doDel(id){if(!window.confirm('Remove this pod and all its members?'))return;try{await deletePod(id);toast('Pod removed.');onRefresh()}catch(e){toast('Error: '+e.message)}}
@@ -111,10 +111,11 @@ function PodsTab({ pods, addPod, deletePod, onRefresh }) {
       <div className="flex gap-2"><Btn onClick={doAdd} disabled={saving} size="sm">Add →</Btn><Btn onClick={()=>setShowAdd(false)} variant="ghost" size="sm">Cancel</Btn></div>
     </div>)}
     {!pods.length?<Empty msg="No pods yet — add one above."/>:pods.map(p=>{const cnt=(p.members||[]).filter(m=>m.status==='active').length;return(
-      <div key={p.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-3 flex items-center gap-4 flex-wrap">
-        <div className="flex-1 min-w-0"><div className="text-[13px] font-bold text-white">{p.name}</div><div className="text-[10px] text-zinc-500 mt-0.5">{cnt} active members</div></div>
+      <div key={p.id} onClick={()=>onOpenPodDetail&&onOpenPodDetail(p.id)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-3 flex items-center gap-4 flex-wrap hover:border-zinc-500 transition-all" style={{cursor:'pointer'}}>
+        <div className="flex-1 min-w-0"><div className="text-[13px] font-bold text-white">{p.name}</div><div className="text-[10px] text-zinc-500 mt-0.5">{cnt} active members · click to manage members</div></div>
         <Badge className={platformBadgeClass(p.platform)}>{platformLabel(p.platform)}</Badge>
-        <button onClick={()=>doDel(p.id)} className="text-[10px] font-bold text-red-400 border border-red-500/25 px-3 py-1.5 rounded-lg bg-transparent cursor-pointer hover:bg-red-500/10 transition-colors font-mono">Remove</button>
+        <span className="text-zinc-500 text-sm mr-1">→</span>
+        <button onClick={(e)=>{e.stopPropagation();doDel(p.id)}} className="text-[10px] font-bold text-red-400 border border-red-500/25 px-3 py-1.5 rounded-lg bg-transparent cursor-pointer hover:bg-red-500/10 transition-colors font-mono">Remove</button>
       </div>
     )})}
   </div>)

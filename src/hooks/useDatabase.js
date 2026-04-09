@@ -52,7 +52,7 @@ export function usePods(talentId) {
     if (!talentId) { setPods([]); setLoading(false); return }
     setLoading(true)
     const { data } = await supabase.from('pods')
-      .select('*, members(id, username, tier, violation_count, session_count, status, removed_at, removal_reason)')
+      .select('*, members(id, username, tier, violation_count, session_count, status, removed_at)')
       .eq('talent_id', talentId).order('name')
     setPods(data || [])
     setLoading(false)
@@ -60,8 +60,8 @@ export function usePods(talentId) {
 
   useEffect(() => { fetch() }, [fetch])
 
-  async function addPod({ name, platform }) {
-    const { error } = await supabase.from('pods').insert({ talent_id: talentId, name, platform })
+  async function addPod({ name, platform, country = '', language = '' }) {
+    const { error } = await supabase.from('pods').insert({ talent_id: talentId, name, platform, country, language })
     if (error) throw error
     await fetch()
   }
@@ -72,7 +72,14 @@ export function usePods(talentId) {
     await fetch()
   }
 
-  return { pods, loading, refetch: fetch, addPod, deletePod }
+  async function renamePod(podId, updates) {
+    // updates can include: name, platform, country, language
+    const { error } = await supabase.from('pods').update(updates).eq('id', podId)
+    if (error) throw error
+    await fetch()
+  }
+
+  return { pods, loading, refetch: fetch, addPod, deletePod, renamePod }
 }
 
 // ─── MEMBERS (single pod) ─────────────────────────────────────────────────────

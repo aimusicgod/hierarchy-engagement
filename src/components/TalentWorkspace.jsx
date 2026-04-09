@@ -14,7 +14,7 @@ const TABS = [
 export default function TalentWorkspace({ talentId, allTalent, managers, onClose, onRefresh, onOpenPodDetail }) {
   const talent = allTalent?.find(t => t.id === talentId)
   const [tab, setTab] = useState('overview')
-  const { pods, refetch: refetchPods, addPod, deletePod } = usePods(talentId)
+  const { pods, refetch: refetchPods, addPod, deletePod, renamePod } = usePods(talentId)
   const { members: allMembers } = useAllMembers(talentId)
   const { violations } = useViolations(talentId)
   const { sessions, createSession } = useSessions(talentId)
@@ -47,7 +47,7 @@ export default function TalentWorkspace({ talentId, allTalent, managers, onClose
       </div>
       <div className="flex-1 overflow-y-auto p-5">
         {tab === 'overview'   && <OverviewTab allMembers={allMembers} violations={violations} pods={pods} />}
-        {tab === 'pods'       && <PodsTab pods={pods} addPod={addPod} deletePod={deletePod} onRefresh={() => { refetchPods(); onRefresh() }} onOpenPodDetail={onOpenPodDetail} />}
+        {tab === 'pods'       && <PodsTab pods={pods} addPod={addPod} deletePod={deletePod} renamePod={renamePod} onRefresh={() => { refetchPods(); onRefresh() }} onOpenPodDetail={onOpenPodDetail} />}
         {tab === 'members'    && <MembersTab allMembers={allMembers} pods={pods} />}
         {tab === 'sessions'   && <SessionsTab sessions={sessions} pods={pods} createSession={createSession} />}
         {tab === 'violations' && <ViolationsTab violations={violations} />}
@@ -97,28 +97,179 @@ function OverviewTab({ allMembers, violations, pods }) {
   )
 }
 
-function PodsTab({ pods, addPod, deletePod, onRefresh, onOpenPodDetail }) {
-  const [showAdd,setShowAdd]=useState(false); const [name,setName]=useState(''); const [plat,setPlat]=useState('ig'); const [saving,setSaving]=useState(false)
-  async function doAdd(){if(!name.trim())return;setSaving(true);try{await addPod({name:name.trim(),platform:plat});setName('');setShowAdd(false);toast('Pod added!');onRefresh()}catch(e){toast('Error: '+e.message)}setSaving(false)}
-  async function doDel(id){if(!window.confirm('Remove this pod and all its members?'))return;try{await deletePod(id);toast('Pod removed.');onRefresh()}catch(e){toast('Error: '+e.message)}}
-  return (<div>
-    <div className="flex items-center justify-between mb-4"><div className="text-[13px] font-bold text-white">Engagement Groups</div><Btn size="sm" onClick={()=>setShowAdd(!showAdd)}>+ Add Pod</Btn></div>
-    {showAdd&&(<div className="bg-red-500/5 border border-red-500/25 rounded-xl p-4 mb-4">
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div><div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Pod Name</div><Input value={name} onChange={setName} placeholder="e.g. IG Group A"/></div>
-        <div><div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Platform</div><Select value={plat} onChange={setPlat}><option value="ig">Instagram</option><option value="tt">TikTok</option><option value="both">Both</option></Select></div>
+function PodsTab({ pods, addPod, deletePod, renamePod, onRefresh, onOpenPodDetail }) {
+  const [showAdd, setShowAdd]   = useState(false)
+  const [editPod, setEditPod]   = useState(null) // pod being renamed
+  const [saving, setSaving]     = useState(false)
+  // Add form fields
+  const [name, setName]         = useState('')
+  const [plat, setPlat]         = useState('ig')
+  const [country, setCountry]   = useState('')
+  const [language, setLanguage] = useState('')
+  // Edit form fields
+  const [eName, setEName]       = useState('')
+  const [ePlat, setEPlat]       = useState('ig')
+  const [eCountry, setECountry] = useState('')
+  const [eLang, setELang]       = useState('')
+
+  const COUNTRIES = ['United States','United Kingdom','Canada','Australia','Nigeria','Ghana','South Africa','Jamaica','Trinidad','Brazil','Mexico','Colombia','France','Germany','Spain','Japan','South Korea','India','Philippines','Other']
+  const LANGUAGES = ['English','Spanish','French','Portuguese','German','Japanese','Korean','Hindi','Tagalog','Arabic','Other']
+
+  async function doAdd() {
+    if (!name.trim()) return
+    setSaving(true)
+    try {
+      await addPod({ name: name.trim(), platform: plat, country, language })
+      setName(''); setCountry(''); setLanguage(''); setShowAdd(false)
+      toast('Pod added!'); onRefresh()
+    } catch(e) { toast('Error: ' + e.message) }
+    setSaving(false)
+  }
+
+  function openEdit(e, p) {
+    e.stopPropagation()
+    setEditPod(p.id)
+    setEName(p.name)
+    setEPlat(p.platform)
+    setECountry(p.country || '')
+    setELang(p.language || '')
+  }
+
+  async function doRename(e) {
+    e.stopPropagation()
+    if (!eName.trim()) return
+    setSaving(true)
+    try {
+      await renamePod(editPod, { name: eName.trim(), platform: ePlat, country: eCountry, language: eLang })
+      setEditPod(null); toast('Pod updated!'); onRefresh()
+    } catch(e) { toast('Error: ' + e.message) }
+    setSaving(false)
+  }
+
+  async function doDel(e, id) {
+    e.stopPropagation()
+    if (!window.confirm('Remove this pod and all its members?')) return
+    try { await deletePod(id); toast('Pod removed.'); onRefresh() }
+    catch(e) { toast('Error: ' + e.message) }
+  }
+
+  const FieldLbl = ({children}) => <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">{children}</div>
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-[13px] font-bold text-white">Engagement Groups <span className="text-[11px] text-zinc-600 font-normal">({pods.length})</span></div>
+        <Btn size="sm" onClick={() => { setShowAdd(!showAdd); setEditPod(null) }}>+ Add Pod</Btn>
       </div>
-      <div className="flex gap-2"><Btn onClick={doAdd} disabled={saving} size="sm">Add →</Btn><Btn onClick={()=>setShowAdd(false)} variant="ghost" size="sm">Cancel</Btn></div>
-    </div>)}
-    {!pods.length?<Empty msg="No pods yet — add one above."/>:pods.map(p=>{const cnt=(p.members||[]).filter(m=>m.status==='active').length;return(
-      <div key={p.id} onClick={()=>onOpenPodDetail&&onOpenPodDetail(p.id)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-3 flex items-center gap-4 flex-wrap hover:border-zinc-500 transition-all" style={{cursor:'pointer'}}>
-        <div className="flex-1 min-w-0"><div className="text-[13px] font-bold text-white">{p.name}</div><div className="text-[10px] text-zinc-500 mt-0.5">{cnt} active members · click to manage members</div></div>
-        <Badge className={platformBadgeClass(p.platform)}>{platformLabel(p.platform)}</Badge>
-        <span className="text-zinc-500 text-sm mr-1">→</span>
-        <button onClick={(e)=>{e.stopPropagation();doDel(p.id)}} className="text-[10px] font-bold text-red-400 border border-red-500/25 px-3 py-1.5 rounded-lg bg-transparent cursor-pointer hover:bg-red-500/10 transition-colors font-mono">Remove</button>
-      </div>
-    )})}
-  </div>)
+
+      {/* ADD FORM */}
+      {showAdd && (
+        <div className="bg-cyan-500/5 border border-cyan-500/25 rounded-xl p-4 mb-4">
+          <div className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-3">New Pod</div>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div><FieldLbl>Pod Name *</FieldLbl><Input value={name} onChange={setName} placeholder="e.g. IG Group A"/></div>
+            <div><FieldLbl>Platform</FieldLbl>
+              <Select value={plat} onChange={setPlat}>
+                <option value="ig">Instagram</option>
+                <option value="tt">TikTok</option>
+                <option value="both">Both</option>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div><FieldLbl>Country</FieldLbl>
+              <Select value={country} onChange={setCountry}>
+                <option value="">— Select country —</option>
+                {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </Select>
+            </div>
+            <div><FieldLbl>Language</FieldLbl>
+              <Select value={language} onChange={setLanguage}>
+                <option value="">— Select language —</option>
+                {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+              </Select>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Btn onClick={doAdd} disabled={saving} size="sm">Add Pod →</Btn>
+            <Btn onClick={() => setShowAdd(false)} variant="ghost" size="sm">Cancel</Btn>
+          </div>
+        </div>
+      )}
+
+      {/* POD LIST */}
+      {!pods.length
+        ? <div className="text-center py-12 text-zinc-600 text-sm">No pods yet — add one above.</div>
+        : pods.map(p => {
+          const cnt = (p.members || []).filter(m => m.status === 'active').length
+          const isEditing = editPod === p.id
+          return (
+            <div key={p.id} className="bg-zinc-900 border border-zinc-800 rounded-xl mb-3 overflow-hidden transition-all hover:border-zinc-700">
+
+              {/* Edit form */}
+              {isEditing ? (
+                <div className="p-4" onClick={e => e.stopPropagation()}>
+                  <div className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-3">Edit Pod</div>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div><FieldLbl>Pod Name *</FieldLbl><Input value={eName} onChange={setEName} placeholder="Pod name"/></div>
+                    <div><FieldLbl>Platform</FieldLbl>
+                      <Select value={ePlat} onChange={setEPlat}>
+                        <option value="ig">Instagram</option>
+                        <option value="tt">TikTok</option>
+                        <option value="both">Both</option>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div><FieldLbl>Country</FieldLbl>
+                      <Select value={eCountry} onChange={setECountry}>
+                        <option value="">— Select country —</option>
+                        {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      </Select>
+                    </div>
+                    <div><FieldLbl>Language</FieldLbl>
+                      <Select value={eLang} onChange={setELang}>
+                        <option value="">— Select language —</option>
+                        {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Btn onClick={doRename} disabled={saving} variant="blue" size="sm">Save Changes →</Btn>
+                    <Btn onClick={() => setEditPod(null)} variant="ghost" size="sm">Cancel</Btn>
+                  </div>
+                </div>
+              ) : (
+                /* Normal pod row — clickable to open pod detail */
+                <div onClick={() => onOpenPodDetail && onOpenPodDetail(p.id)}
+                  className="p-4 flex items-center gap-3 flex-wrap cursor-pointer">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-bold text-white">{p.name}</div>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-[10px] text-zinc-500">{cnt} active members</span>
+                      {p.country && <span className="text-[9px] text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">🌍 {p.country}</span>}
+                      {p.language && <span className="text-[9px] text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">💬 {p.language}</span>}
+                    </div>
+                  </div>
+                  <Badge className={platformBadgeClass(p.platform)}>{platformLabel(p.platform)}</Badge>
+                  <span className="text-zinc-600 text-sm">→</span>
+                  {/* Edit button */}
+                  <button onClick={e => openEdit(e, p)}
+                    className="text-[9px] font-bold text-cyan-400 border border-cyan-500/25 px-2.5 py-1.5 rounded-lg bg-transparent cursor-pointer hover:bg-cyan-500/10 transition-colors font-mono">
+                    ✏ Edit
+                  </button>
+                  {/* Delete button */}
+                  <button onClick={e => doDel(e, p.id)}
+                    className="text-[9px] font-bold text-red-400 border border-red-500/25 px-2.5 py-1.5 rounded-lg bg-transparent cursor-pointer hover:bg-red-500/10 transition-colors font-mono">
+                    🗑 Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+    </div>
+  )
 }
 
 function MembersTab({ allMembers, pods }) {

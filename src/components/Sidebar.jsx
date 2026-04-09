@@ -16,52 +16,76 @@ const MGR_NAV = [
   { page: 'violations', label: 'Violations' },
 ]
 
-// Exact Hierarchy Music logo — circle with gradient border, H with two vertical bars,
-// blue dot left, pink dot right, dark navy fill on H
 function HierarchyLogo({ size = 44 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 200 200"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ flexShrink: 0 }}
+    >
       <defs>
-        <linearGradient id="borderGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#25f4ee" />
-          <stop offset="50%" stopColor="#9b59b6" />
-          <stop offset="100%" stopColor="#fe2c55" />
+        {/* Main gradient: blue top-left → purple → pink bottom-right */}
+        <linearGradient id="g1" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stopColor="#00cfff" />
+          <stop offset="45%"  stopColor="#7b3fbe" />
+          <stop offset="100%" stopColor="#ff2d78" />
         </linearGradient>
-        <linearGradient id="hLeftGrad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#25f4ee" />
-          <stop offset="100%" stopColor="#1a237e" />
+
+        {/* Left bar of H: blue → dark navy */}
+        <linearGradient id="gLeft" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stopColor="#00aaff" />
+          <stop offset="100%" stopColor="#001a4d" />
         </linearGradient>
-        <linearGradient id="hRightGrad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#880e4f" />
-          <stop offset="100%" stopColor="#fe2c55" />
+
+        {/* Right bar of H: dark maroon → pink */}
+        <linearGradient id="gRight" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stopColor="#4a003a" />
+          <stop offset="100%" stopColor="#ff2d78" />
+        </linearGradient>
+
+        {/* Crossbar gradient */}
+        <linearGradient id="gCross" x1="0" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stopColor="#00aaff" />
+          <stop offset="50%"  stopColor="#8a2be2" />
+          <stop offset="100%" stopColor="#ff2d78" />
         </linearGradient>
       </defs>
-      {/* Outer gradient ring */}
-      <circle cx="50" cy="50" r="48" stroke="url(#borderGrad)" strokeWidth="4" fill="none" />
-      {/* Inner ring */}
-      <circle cx="50" cy="50" r="43" stroke="url(#borderGrad)" strokeWidth="1.5" fill="none" opacity="0.5" />
-      {/* White circle fill */}
-      <circle cx="50" cy="50" r="41" fill="white" />
 
-      {/* H left vertical bar */}
-      <rect x="22" y="18" width="16" height="64" rx="2" fill="url(#hLeftGrad)" />
-      {/* H left bar inner dark shadow */}
-      <rect x="25" y="21" width="10" height="58" rx="1" fill="#0d1a3a" opacity="0.7" />
+      {/* ── OUTER THICK RING (gradient stroke) ── */}
+      <circle cx="100" cy="100" r="94" stroke="url(#g1)" strokeWidth="10" fill="none" />
 
-      {/* H right vertical bar */}
-      <rect x="62" y="18" width="16" height="64" rx="2" fill="url(#hRightGrad)" />
-      {/* H right bar inner dark shadow */}
-      <rect x="65" y="21" width="10" height="58" rx="1" fill="#3d0019" opacity="0.7" />
+      {/* ── THIN INNER RING ── */}
+      <circle cx="100" cy="100" r="81" stroke="url(#g1)" strokeWidth="2.5" fill="none" />
 
-      {/* H crossbar */}
-      <rect x="22" y="43" width="56" height="14" rx="2" fill="url(#borderGrad)" opacity="0.9" />
-      {/* Crossbar inner dark */}
-      <rect x="25" y="46" width="50" height="8" rx="1" fill="#1a0a2e" opacity="0.6" />
+      {/* ── WHITE FILL ── */}
+      <circle cx="100" cy="100" r="79" fill="white" />
 
-      {/* Blue dot left */}
-      <circle cx="14" cy="50" r="5" fill="#25f4ee" />
-      {/* Pink dot right */}
-      <circle cx="86" cy="50" r="5" fill="#fe2c55" />
+      {/* ────── LEFT VERTICAL BAR OF H ────── */}
+      {/* Outer gradient outline */}
+      <rect x="38" y="28" width="38" height="144" rx="4" fill="url(#gLeft)" />
+      {/* Dark inner fill (creates the outlined look) */}
+      <rect x="43" y="33" width="28" height="134" rx="2" fill="#0a1a3a" />
+
+      {/* ────── RIGHT VERTICAL BAR OF H ────── */}
+      {/* Outer gradient outline */}
+      <rect x="124" y="28" width="38" height="144" rx="4" fill="url(#gRight)" />
+      {/* Dark inner fill */}
+      <rect x="129" y="33" width="28" height="134" rx="2" fill="#2a001a" />
+
+      {/* ────── CROSSBAR ────── */}
+      {/* Outer gradient outline */}
+      <rect x="38" y="85" width="124" height="30" rx="3" fill="url(#gCross)" />
+      {/* Dark inner fill */}
+      <rect x="43" y="89" width="114" height="22" rx="2" fill="#1a0830" opacity="0.85" />
+
+      {/* ────── BLUE DOT (left) ────── */}
+      <circle cx="18" cy="100" r="10" fill="#00aaff" />
+
+      {/* ────── PINK DOT (right) ────── */}
+      <circle cx="182" cy="100" r="10" fill="#ff2d78" />
     </svg>
   )
 }
@@ -98,7 +122,7 @@ export default function Sidebar({ page, onNavigate, isOwner, isManagerView, prev
         w-[220px] bg-zinc-950 border-r border-zinc-800/80 flex flex-col
         transform transition-transform duration-200 ease-in-out
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `} style={{ height: '100dvh', minHeight: '100%' }}>
+      `} style={{ height: '100dvh' }}>
 
         {/* Logo */}
         <div className="px-4 py-4 border-b border-zinc-800/80 flex items-center gap-3 flex-shrink-0">
@@ -107,10 +131,13 @@ export default function Sidebar({ page, onNavigate, isOwner, isManagerView, prev
             <div className="text-[15px] font-black text-white tracking-tight">Hierarchy</div>
             <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Music</div>
           </div>
-          <button onClick={onCloseMobile} className="ml-auto md:hidden text-zinc-600 hover:text-white bg-transparent border-0 text-xl cursor-pointer leading-none">✕</button>
+          <button onClick={onCloseMobile}
+            className="ml-auto md:hidden text-zinc-600 hover:text-white bg-transparent border-0 text-xl cursor-pointer leading-none">
+            ✕
+          </button>
         </div>
 
-        {/* Role badge + toggle */}
+        {/* Role badge + Owner/Manager toggle */}
         <div className="px-3 py-2.5 border-b border-zinc-800/80 flex-shrink-0">
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg mb-1.5 text-[11px] font-bold"
             style={{ background: 'rgba(37,244,238,.1)', color: '#25f4ee', border: '1px solid rgba(37,244,238,.3)' }}>
@@ -124,12 +151,16 @@ export default function Sidebar({ page, onNavigate, isOwner, isManagerView, prev
               <div className="flex gap-1.5 mb-1">
                 <button onClick={() => handleViewSwitch('owner')}
                   className="flex-1 py-2 rounded-lg text-[11px] font-black cursor-pointer border-0 transition-all"
-                  style={!previewMgrId ? { background: '#25f4ee', color: '#000' } : { background: 'transparent', color: '#555', border: '1px solid #2a2a2a' }}>
+                  style={!previewMgrId
+                    ? { background: '#25f4ee', color: '#000' }
+                    : { background: 'transparent', color: '#555', border: '1px solid #2a2a2a' }}>
                   Owner
                 </button>
                 <button onClick={() => handleViewSwitch('manager')}
                   className="flex-1 py-2 rounded-lg text-[11px] font-bold cursor-pointer border-0 transition-all"
-                  style={previewMgrId ? { background: '#1a1a1a', color: '#fff', border: '1px solid #3a3a3a' } : { background: 'transparent', color: '#555', border: '1px solid #2a2a2a' }}>
+                  style={previewMgrId
+                    ? { background: '#1a1a1a', color: '#fff', border: '1px solid #3a3a3a' }
+                    : { background: 'transparent', color: '#555', border: '1px solid #2a2a2a' }}>
                   Manager
                 </button>
               </div>
@@ -144,7 +175,7 @@ export default function Sidebar({ page, onNavigate, isOwner, isManagerView, prev
           )}
         </div>
 
-        {/* Nav — scrollable */}
+        {/* Nav */}
         <nav className="flex-1 px-2 py-2.5 flex flex-col gap-0.5 overflow-y-auto">
           {navItems.map(({ page: p, label }) => {
             const active = page === p
@@ -156,7 +187,8 @@ export default function Sidebar({ page, onNavigate, isOwner, isManagerView, prev
                   : { border: '1px solid transparent', color: '#555', fontWeight: 500 }}
                 onMouseEnter={e => { if (!active) { e.currentTarget.style.background = '#161616'; e.currentTarget.style.color = '#fff' } }}
                 onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#555' } }}>
-                <div className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: active ? '#fe2c55' : '#333' }} />
+                <div className="w-[7px] h-[7px] rounded-full flex-shrink-0"
+                  style={{ background: active ? '#fe2c55' : '#333' }} />
                 {label}
               </div>
             )
@@ -165,7 +197,8 @@ export default function Sidebar({ page, onNavigate, isOwner, isManagerView, prev
 
         {/* Sign out */}
         <div className="px-4 py-3.5 border-t border-zinc-800/80 flex-shrink-0">
-          <button onClick={signOut} className="text-[11px] text-zinc-600 cursor-pointer bg-transparent border-0 hover:text-red-400 transition-colors">
+          <button onClick={signOut}
+            className="text-[11px] text-zinc-600 cursor-pointer bg-transparent border-0 hover:text-red-400 transition-colors">
             ← Sign Out
           </button>
         </div>

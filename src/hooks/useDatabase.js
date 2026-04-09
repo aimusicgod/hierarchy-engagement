@@ -52,7 +52,7 @@ export function usePods(talentId) {
     if (!talentId) { setPods([]); setLoading(false); return }
     setLoading(true)
     const { data } = await supabase.from('pods')
-      .select('*, members(id, username, tier, violation_count, session_count, status, removed_at)')
+      .select('*, members(id, username, tier, violation_count, session_count, status, removed_at, removal_reason)')
       .eq('talent_id', talentId).order('name')
     setPods(data || [])
     setLoading(false)
@@ -91,24 +91,52 @@ export function useMembers(podId) {
   useEffect(() => { fetch() }, [fetch])
 
   async function addMember({ username, tier = 'a' }) {
+    // Check if this username is blacklisted in this pod
+    const normalized = username.replace(/^@/, '').toLowerCase()
+    const { data: existing } = await supabase.from('members')
+      .select('id, status, username')
+      .eq('pod_id', podId)
+      .ilike('username', '%' + normalized + '%')
+    const blacklisted = (existing || []).find(m => 
+      m.username.replace(/^@/, '').toLowerCase() === normalized &&
+      (m.status === 'blacklisted' || m.status === 'banned')
+    )
+    if (blacklisted) {
+      throw new Error(`@${normalized} is blacklisted in this pod and cannot be re-added without owner approval.`)
+    }
     const { error } = await supabase.from('members').insert({ pod_id: podId, username, tier, status: 'active', violation_count: 0, session_count: 0 })
     if (error) throw error
     await fetch()
   }
 
   async function removeMember(memberId) {
-    const { error } = await supabase.from('members').update({ status: 'removed', removed_at: new Date().toISOString() }).eq('id', memberId)
+    // Removed members go to blacklist — they cannot be re-added without owner approval
+    const { error } = await supabase.from('members')
+      .update({ status: 'blacklisted', removed_at: new Date().toISOString() })
+      .eq('id', memberId)
     if (error) throw error
     await fetch()
   }
 
-  async function restoreMember(memberId) {
-    const { error } = await supabase.from('members').update({ status: 'active', removed_at: null }).eq('id', memberId)
+  async function approveRestore(memberId) {
+    // Only callable by owner — restores a blacklisted member to active
+    const { error } = await supabase.from('members')
+      .update({ status: 'active', removed_at: null })
+      .eq('id', memberId)
     if (error) throw error
     await fetch()
   }
 
-  return { members, loading, refetch: fetch, addMember, removeMember, restoreMember }
+  async function permanentBan(memberId) {
+    // Owner permanently bans — keeps blacklisted but marks as permanent
+    const { error } = await supabase.from('members')
+      .update({ status: 'banned' })
+      .eq('id', memberId)
+    if (error) throw error
+    await fetch()
+  }
+
+  return { members, loading, refetch: fetch, addMember, removeMember, approveRestore, permanentBan }
 }
 
 // ─── ALL MEMBERS (across all pods for one talent) ─────────────────────────────

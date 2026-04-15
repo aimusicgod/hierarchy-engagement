@@ -80,7 +80,7 @@ function MainApp() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: '#000', fontFamily: 'ui-monospace, "Cascadia Mono", monospace' }}>
+    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: '#000', fontFamily: "'Inter', sans-serif" }}>
 
       <Sidebar
         page={page} onNavigate={setPage}

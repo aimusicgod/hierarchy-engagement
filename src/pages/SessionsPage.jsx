@@ -100,7 +100,7 @@ export default function SessionsPage() {
   function computeLive() {
     if (!active) return
     const c = parseUsernames(commented), l = parseUsernames(liked)
-    if (!c.length && !l.length) { setLiveResults(null); return }
+    // Even with empty inputs, compute — empty means nobody commented/liked (all violations)
     const results = active.pods.map(pod => {
       const mems = (pod.members || []).filter(m => m.status === 'active')
       let ok = 0, vio = 0
@@ -123,7 +123,7 @@ export default function SessionsPage() {
   }
 
   async function logSession() {
-    if (!active || !liveResults) return
+    if (!active) return
     setLogging(true)
     try {
       await createSession({
@@ -220,6 +220,7 @@ export default function SessionsPage() {
                 className="w-full bg-zinc-950 border border-red-500/20 rounded-lg px-3 py-2 text-red-400 text-[11px] font-mono outline-none resize-none min-h-[90px] focus:border-red-500/40" />
             </div>
           </div>
+          {/* Live results — shown when something typed */}
           {liveResults && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-2 px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl">
@@ -251,12 +252,18 @@ export default function SessionsPage() {
                   </div>
                 </div>
               ))}
-              <button onClick={logSession} disabled={logging}
-                className="w-full bg-[#fe2c55] text-white text-[12px] font-bold py-3 rounded-xl border-0 cursor-pointer hover:opacity-85 transition-opacity disabled:opacity-50 font-mono">
-                {logging ? 'Saving…' : 'Log All Violations + Save Session →'}
-              </button>
             </div>
           )}
+
+          {/* Save button — ALWAYS visible when session is active */}
+          <button onClick={logSession} disabled={logging}
+            className="w-full bg-[#fe2c55] text-white text-[12px] font-bold py-3 rounded-xl border-0 cursor-pointer hover:opacity-85 transition-opacity disabled:opacity-50"
+            style={{marginBottom: 8}}>
+            {logging ? 'Saving…' : liveResults ? 'Log All Violations + Save Session →' : 'Save Session (no engagement data yet) →'}
+          </button>
+          <div className="text-[10px] text-zinc-600 text-center mb-3">
+            Tip: paste who commented and liked above first to track violations before saving
+          </div>
         </div>
       )}
 

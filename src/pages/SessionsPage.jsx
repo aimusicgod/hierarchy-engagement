@@ -165,6 +165,12 @@ export default function SessionsPage() {
             <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Post URL *</div>
             <input value={postUrl} onChange={e => setPostUrl(e.target.value)} type="url" placeholder="https://instagram.com/p/… or https://tiktok.com/@…"
               className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-cyan-400 text-[11px] font-mono outline-none focus:border-cyan-500/50" />
+            {postUrl.trim() && sessions.some(s => s.post_url === postUrl.trim()) && (
+              <div className="mt-2 flex items-center gap-2 text-[10px] font-bold text-yellow-400 rounded-lg px-3 py-2" style={{background:'rgba(234,179,8,.08)',border:'1px solid rgba(234,179,8,.25)'}}>
+                <span>⚠</span>
+                <span>Already run. Saving will <strong>replace</strong> the old session and fix all percentages.</span>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div><div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Date</div>

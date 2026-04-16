@@ -185,11 +185,51 @@ export function useSessions(talentId) {
 
   useEffect(() => { fetch() }, [fetch])
 
-  // Log a full session with violations
+  // Log a full session with violations.
+  // If the same post_url was already run for this talent, we REPLACE it (undo old counts, apply new).
   async function createSession({ post_url, session_date, session_time, notes, pod_ids, commented, liked }) {
-    // Create the session row
+
+    // ── Check for duplicate post URL ──────────────────────────────────────────
+    const { data: existing } = await supabase.from('sessions')
+      .select('id')
+      .eq('talent_id', talentId)
+      .eq('post_url', post_url.trim())
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      const existingId = existing[0].id
+
+      // UNDO the old session's impact on member counts
+      const { data: oldVios } = await supabase.from('violations')
+        .select('member_id, violation_type')
+        .eq('session_id', existingId)
+
+      // Get all members touched by the old session
+      const { data: oldPodLinks } = await supabase.from('session_pods')
+        .select('pod_id').eq('session_id', existingId)
+      const oldPodIds = (oldPodLinks || []).map(sp => sp.pod_id)
+
+      for (const podId of oldPodIds) {
+        const { data: mems } = await supabase.from('members').select('*').eq('pod_id', podId)
+        for (const m of (mems || [])) {
+          const memberOldVios = (oldVios || []).filter(v => v.member_id === m.id)
+          const vioCount = memberOldVios.length
+          // Undo: subtract session_count by 1 and violation_count by how many violations
+          const newSC = Math.max(0, (m.session_count || 0) - 1)
+          const newVC = Math.max(0, (m.violation_count || 0) - vioCount)
+          await supabase.from('members').update({ session_count: newSC, violation_count: newVC }).eq('id', m.id)
+        }
+      }
+
+      // Delete old violations, session_pods, and session record
+      await supabase.from('violations').delete().eq('session_id', existingId)
+      await supabase.from('session_pods').delete().eq('session_id', existingId)
+      await supabase.from('sessions').delete().eq('id', existingId)
+    }
+
+    // ── Create fresh session ──────────────────────────────────────────────────
     const { data: session, error: sErr } = await supabase.from('sessions')
-      .insert({ talent_id: talentId, post_url, session_date, session_time, notes })
+      .insert({ talent_id: talentId, post_url: post_url.trim(), session_date, session_time, notes })
       .select().single()
     if (sErr) throw sErr
 

@@ -61,6 +61,13 @@ function MainApp() {
   const { managers } = useManagers()
 
   const [page, setPage]                 = useState(isOwner ? 'dashboard' : 'talent')
+
+  // Refetch talent data on every page change so compliance is always current
+  function navigateTo(p) {
+    setPage(p)
+    // Small delay so the page renders first, then refreshes data
+    setTimeout(() => refetchTalent(), 300)
+  }
   const [workspaceId, setWorkspaceId]   = useState(null)
   const [podDetailId, setPodDetailId]   = useState(null)
   const [previewMgrId, setPreviewMgrId] = useState(null)
@@ -83,7 +90,7 @@ function MainApp() {
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: '#000', fontFamily: "'Inter', sans-serif" }}>
 
       <Sidebar
-        page={page} onNavigate={setPage}
+        page={page} onNavigate={navigateTo}
         isOwner={isOwner} isManagerView={isManagerView}
         previewMgrId={previewMgrId} setPreviewMgrId={setPreviewMgrId}
         managers={managers}
@@ -126,7 +133,7 @@ function MainApp() {
       <Watermark />
 
       {/* Mobile bottom nav */}
-      <MobileNav page={page} onNavigate={setPage} isOwner={isOwner} isManagerView={isManagerView} />
+      <MobileNav page={page} onNavigate={navigateTo} isOwner={isOwner} isManagerView={isManagerView} />
     </div>
   )
 }

@@ -22,6 +22,14 @@ export function useTalent() {
 
   useEffect(() => { fetch() }, [fetch])
 
+  // Refetch when window regains focus — ensures compliance scores
+  // are always fresh after session deletes/saves on other pages
+  useEffect(() => {
+    const onFocus = () => fetch()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [fetch])
+
   async function addTalent({ name, ig_handle, tt_handle, manager_id }) {
     const { error } = await supabase.from('talent').insert({ name, ig_handle, tt_handle, manager_id: manager_id || null, active: true })
     if (error) throw error
@@ -163,6 +171,14 @@ export function useAllMembers(talentId) {
   }, [talentId])
 
   useEffect(() => { fetch() }, [fetch])
+
+  // Refetch members when window regains focus
+  useEffect(() => {
+    const onFocus = () => fetch()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [fetch])
+
   return { members, loading, refetch: fetch }
 }
 
@@ -263,26 +279,47 @@ export function useSessions(talentId) {
   }
 
   async function deleteSession(sessionId) {
-    // First undo the session's impact on member counts
+    // Step 1: Get all violations for this session
+    // violations tell us exactly WHO was in the session and how many vios they got
     const { data: vios } = await supabase.from('violations')
-      .select('member_id, violation_type').eq('session_id', sessionId)
+      .select('member_id, violation_type')
+      .eq('session_id', sessionId)
+
+    // Step 2: Get which pods ran in this session
     const { data: podLinks } = await supabase.from('session_pods')
       .select('pod_id').eq('session_id', sessionId)
+    const podIds = (podLinks || []).map(p => p.pod_id)
 
-    for (const podLink of (podLinks || [])) {
-      const { data: mems } = await supabase.from('members').select('*').eq('pod_id', podLink.pod_id)
-      for (const m of (mems || [])) {
-        const memberVios = (vios || []).filter(v => v.member_id === m.id).length
-        const newSC = Math.max(0, (m.session_count || 0) - 1)
-        const newVC = Math.max(0, (m.violation_count || 0) - memberVios)
-        await supabase.from('members').update({ session_count: newSC, violation_count: newVC }).eq('id', m.id)
-      }
+    // Step 3: Get ALL active members from those pods (these all got session_count +1 when session ran)
+    const { data: allPodMembers } = await supabase.from('members')
+      .select('id, session_count, violation_count, status')
+      .in('pod_id', podIds.length ? podIds : ['00000000-0000-0000-0000-000000000000'])
+
+    // Step 4: For each member, fetch their CURRENT counts fresh from DB then subtract
+    for (const m of (allPodMembers || [])) {
+      // Only undo for members who were active (participated in session)
+      if (m.status !== 'active') continue
+
+      // Get fresh counts directly from DB to avoid stale state
+      const { data: fresh } = await supabase.from('members')
+        .select('session_count, violation_count').eq('id', m.id).single()
+      if (!fresh) continue
+
+      const memberVioCount = (vios || []).filter(v => v.member_id === m.id).length
+      const newSC = Math.max(0, (fresh.session_count || 0) - 1)
+      const newVC = Math.max(0, (fresh.violation_count || 0) - memberVioCount)
+
+      await supabase.from('members')
+        .update({ session_count: newSC, violation_count: newVC })
+        .eq('id', m.id)
     }
 
-    // Delete violations, session_pods, session
+    // Step 5: Clean up session data
     await supabase.from('violations').delete().eq('session_id', sessionId)
     await supabase.from('session_pods').delete().eq('session_id', sessionId)
     await supabase.from('sessions').delete().eq('id', sessionId)
+
+    // Step 6: Refresh sessions list
     await fetch()
   }
 

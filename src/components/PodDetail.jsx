@@ -19,6 +19,18 @@ export default function PodDetail({ podId, allTalent, onClose, onRunSession }) {
   const [saving, setSaving]           = useState(false)
   const [removeReason, setRemoveReason] = useState({}) // memberId -> reason text
   const [showRemoveForm, setShowRemoveForm] = useState(null) // memberId
+  const [sortCol, setSortCol]   = useState('username')  // username | tier | session_count | compliance
+  const [sortDir, setSortDir]   = useState('asc')       // asc | desc
+
+  function toggleSort(col) {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir(col === 'compliance' ? 'asc' : 'asc') }
+  }
+
+  function sortIcon(col) {
+    if (sortCol !== col) return <span style={{color:'#444',marginLeft:3}}>↕</span>
+    return <span style={{color:'#25f4ee',marginLeft:3}}>{sortDir === 'asc' ? '↑' : '↓'}</span>
+  }
 
   if (!pod) return null
 
@@ -27,7 +39,18 @@ export default function PodDetail({ podId, allTalent, onClose, onRunSession }) {
   const avg         = active.length ? Math.round(active.reduce((a, m) => a + compliancePct(m), 0) / active.length) : 100
   const atRisk      = active.filter(m => compliancePct(m) <= 70).length
 
-  const filtered = active.filter(m => !search || m.username.toLowerCase().includes(search.toLowerCase()))
+  const filtered = active
+    .filter(m => !search || m.username.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      let av, bv
+      if (sortCol === 'username')      { av = a.username.toLowerCase(); bv = b.username.toLowerCase() }
+      else if (sortCol === 'tier')     { av = a.tier; bv = b.tier }
+      else if (sortCol === 'sessions') { av = a.session_count || 0; bv = b.session_count || 0 }
+      else if (sortCol === 'compliance') { av = compliancePct(a); bv = compliancePct(b) }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1
+      if (av > bv) return sortDir === 'asc' ? 1 : -1
+      return 0
+    })
   const filteredBlacklist = blacklisted.filter(m => !blacklistSearch || m.username.toLowerCase().includes(blacklistSearch.toLowerCase()))
 
   // Parse and check bulk usernames against blacklist
@@ -181,9 +204,13 @@ export default function PodDetail({ podId, allTalent, onClose, onRunSession }) {
             </div>
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden">
               <div className="grid gap-2 px-4 py-2 bg-zinc-900/80 border-b border-zinc-800" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
-                {['Username', 'Tier', 'Sessions', 'Compliance', 'Actions'].map(h => (
-                  <span key={h} className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{h}</span>
+                {[['username','Username'],['tier','Tier'],['sessions','Sessions'],['compliance','Compliance']].map(([col,label]) => (
+                  <button key={col} onClick={() => toggleSort(col)}
+                    className="text-left text-[9px] font-bold text-zinc-500 uppercase tracking-widest bg-transparent border-0 cursor-pointer hover:text-white transition-colors p-0 flex items-center">
+                    {label}{sortIcon(col)}
+                  </button>
                 ))}
+                <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Actions</span>
               </div>
               {loading ? <div className="py-10 flex justify-center"><Spinner /></div>
                 : !filtered.length ? <div className="py-10 text-center text-sm text-zinc-600">No members match.</div>

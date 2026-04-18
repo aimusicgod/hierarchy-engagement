@@ -4,10 +4,20 @@ import { parseUsernames, platformBadgeClass, platformShort, formatDate } from '.
 import { Btn, Badge, GradBar, PageHeader, Spinner, Empty, toast } from '../components/UI'
 import { useAuth } from '../contexts/AuthContext'
 
-function HistCard({ session }) {
+function HistCard({ session, onDelete, onUpdate }) {
   const [open, setOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const pods = session.session_pods || []
   const cols = Math.min(pods.length, 3)
+
+  async function handleDelete(e) {
+    e.stopPropagation()
+    if (!window.confirm('Delete this session? This will undo all violation counts from it.')) return
+    setDeleting(true)
+    try { await onDelete(session.id) }
+    catch (err) { alert('Error deleting: ' + err.message); setDeleting(false) }
+  }
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-3">
       <div onClick={() => setOpen(!open)} className="p-4 flex items-center justify-between flex-wrap gap-3 cursor-pointer hover:bg-zinc-800/30 transition-colors">
@@ -15,13 +25,22 @@ function HistCard({ session }) {
           <div className="text-[13px] font-bold text-white">{pods.map(sp => sp.pods?.name).join(' + ') || '—'}</div>
           <div className="text-[10px] text-zinc-500 mt-0.5">{formatDate(session.session_date)}{session.session_time ? ' · ' + session.session_time : ''}</div>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold bg-zinc-800 text-zinc-500 border border-zinc-700">Saved</span>
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="flex gap-3 text-[11px] font-bold">
             <span className="text-cyan-400">✓ {session.total_ok}</span>
             <span className="text-red-400">✗ {session.total_violations}</span>
           </div>
-          <span className="text-[10px] text-zinc-600">{open ? '▲ collapse' : '▼ expand'}</span>
+          {/* Update button — loads this session's URL into the form */}
+          <button onClick={e => { e.stopPropagation(); onUpdate(session) }}
+            className="text-[9px] font-bold text-cyan-400 border border-cyan-500/25 px-2.5 py-1 rounded-lg bg-transparent cursor-pointer hover:bg-cyan-500/10 transition-colors">
+            ✏ Update
+          </button>
+          {/* Delete button */}
+          <button onClick={handleDelete} disabled={deleting}
+            className="text-[9px] font-bold text-red-400 border border-red-500/25 px-2.5 py-1 rounded-lg bg-transparent cursor-pointer hover:bg-red-500/15 transition-colors disabled:opacity-40">
+            {deleting ? '…' : '🗑 Delete'}
+          </button>
+          <span className="text-[10px] text-zinc-600">{open ? '▲' : '▼'}</span>
         </div>
       </div>
       <div className="px-4 py-2 border-t border-zinc-900 flex gap-2 items-center">
@@ -78,7 +97,7 @@ export default function SessionsPage() {
   const { profile } = useAuth()
   const { talent, loading: tLoad } = useTalent()
   const [talentId, setTalentId] = useState('')
-  const { sessions, loading: sLoad, createSession } = useSessions(talentId || talent[0]?.id)
+  const { sessions, loading: sLoad, createSession, deleteSession } = useSessions(talentId || talent[0]?.id)
 
   const selTalent = talent.find(t => t.id === (talentId || talent[0]?.id))
   const pods = selTalent?.pods || []
@@ -113,6 +132,21 @@ export default function SessionsPage() {
       return { pod, rows, ok, vio }
     })
     setLiveResults(results)
+  }
+
+  function handleUpdateSession(session) {
+    // Pre-fill the form with the existing session's URL so user can update comments/likes
+    // The createSession function will detect the duplicate URL and replace it
+    setPostUrl(session.post_url)
+    setSessDate(session.session_date || new Date().toISOString().slice(0, 10))
+    setSessTime(session.session_time || '12:00')
+    // Pre-select the pods that were in the original session
+    const podIds = (session.session_pods || []).map(sp => sp.pods?.id).filter(Boolean)
+    setSelPods(podIds)
+    setShowForm(true)
+    setActive(null)
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function startSession() {
@@ -280,7 +314,7 @@ export default function SessionsPage() {
       </div>
       {sLoad ? <div className="flex justify-center py-8"><Spinner /></div>
         : !sessions.length ? <Empty msg="No sessions yet — run your first session above." />
-        : sessions.map(s => <HistCard key={s.id} session={s} />)}
+        : sessions.map(s => <HistCard key={s.id} session={s} onDelete={deleteSession} onUpdate={handleUpdateSession} />)}
     </div>
   )
 }

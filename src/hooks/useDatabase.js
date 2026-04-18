@@ -262,7 +262,31 @@ export function useSessions(talentId) {
     return session
   }
 
-  return { sessions, loading, refetch: fetch, createSession }
+  async function deleteSession(sessionId) {
+    // First undo the session's impact on member counts
+    const { data: vios } = await supabase.from('violations')
+      .select('member_id, violation_type').eq('session_id', sessionId)
+    const { data: podLinks } = await supabase.from('session_pods')
+      .select('pod_id').eq('session_id', sessionId)
+
+    for (const podLink of (podLinks || [])) {
+      const { data: mems } = await supabase.from('members').select('*').eq('pod_id', podLink.pod_id)
+      for (const m of (mems || [])) {
+        const memberVios = (vios || []).filter(v => v.member_id === m.id).length
+        const newSC = Math.max(0, (m.session_count || 0) - 1)
+        const newVC = Math.max(0, (m.violation_count || 0) - memberVios)
+        await supabase.from('members').update({ session_count: newSC, violation_count: newVC }).eq('id', m.id)
+      }
+    }
+
+    // Delete violations, session_pods, session
+    await supabase.from('violations').delete().eq('session_id', sessionId)
+    await supabase.from('session_pods').delete().eq('session_id', sessionId)
+    await supabase.from('sessions').delete().eq('id', sessionId)
+    await fetch()
+  }
+
+  return { sessions, loading, refetch: fetch, createSession, deleteSession }
 }
 
 // ─── VIOLATIONS ───────────────────────────────────────────────────────────────

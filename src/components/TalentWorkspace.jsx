@@ -15,9 +15,9 @@ export default function TalentWorkspace({ talentId, allTalent, managers, onClose
   const talent = allTalent?.find(t => t.id === talentId)
   const [tab, setTab] = useState('overview')
   const { pods, refetch: refetchPods, addPod, deletePod, renamePod } = usePods(talentId)
-  const { members: allMembers } = useAllMembers(talentId)
+  const { members: allMembers, refetch: refetchMembers } = useAllMembers(talentId)
   const { violations } = useViolations(talentId)
-  const { sessions, createSession } = useSessions(talentId)
+  const { sessions, createSession, deleteSession } = useSessions(talentId)
 
   if (!talent) return null
   const mgr = managers?.find(m => m.id === talent.manager_id)
@@ -49,7 +49,7 @@ export default function TalentWorkspace({ talentId, allTalent, managers, onClose
         {tab === 'overview'   && <OverviewTab allMembers={allMembers} violations={violations} pods={pods} />}
         {tab === 'pods'       && <PodsTab pods={pods} addPod={addPod} deletePod={deletePod} renamePod={renamePod} onRefresh={() => { refetchPods(); onRefresh() }} onOpenPodDetail={onOpenPodDetail} />}
         {tab === 'members'    && <MembersTab allMembers={allMembers} pods={pods} />}
-        {tab === 'sessions'   && <SessionsTab sessions={sessions} pods={pods} createSession={createSession} />}
+        {tab === 'sessions'   && <SessionsTab sessions={sessions} pods={pods} createSession={createSession} deleteSession={deleteSession} refetchMembers={refetchMembers} />}
         {tab === 'violations' && <ViolationsTab violations={violations} />}
       </div>
     </div>
@@ -372,11 +372,11 @@ function MembersTab({ allMembers, pods }) {
   </div>)
 }
 
-function SessionsTab({ sessions, pods, createSession }) {
+function SessionsTab({ sessions, pods, createSession, deleteSession, refetchMembers }) {
   const [showForm,setShowForm]=useState(false);const [url,setUrl]=useState('');const [date,setDate]=useState(new Date().toISOString().slice(0,10));const [time,setTime]=useState('12:00');const [selPods,setSelPods]=useState([]);const [commented,setCommented]=useState('');const [liked,setLiked]=useState('');const [active,setActive]=useState(null);const [live,setLive]=useState(null);const [saving,setSaving]=useState(false)
   function computeLive(){if(!active)return;const c=parseUsernames(commented),l=parseUsernames(liked);setLive(active.pods.map(pod=>{const mems=(pod.members||[]).filter(m=>m.status==='active');let ok=0,vio=0;const rows=mems.map(m=>{const key=m.username.replace(/^@/,'').toLowerCase();const dc=c.includes(key),dl=l.includes(key);if(dc&&dl)ok++;else vio++;return{...m,dc,dl}});return{pod,rows,ok,vio}}))}
   function startSess(){if(!url.trim()){toast('Post URL required.');return}if(!selPods.length){toast('Select at least one pod.');return}setActive({url,date,time,pods:pods.filter(p=>selPods.includes(p.id))});setCommented('');setLiked('');setLive(null);setShowForm(false)}
-  async function logSess(){if(!active)return;setSaving(true);try{await createSession({post_url:active.url,session_date:active.date,session_time:active.time,pod_ids:active.pods.map(p=>p.id),commented:parseUsernames(commented),liked:parseUsernames(liked)});setActive(null);setLive(null);setSelPods([]);toast('Session saved!')}catch(e){toast('Error: '+e.message)}setSaving(false)}
+  async function logSess(){if(!active)return;setSaving(true);try{await createSession({post_url:active.url,session_date:active.date,session_time:active.time,pod_ids:active.pods.map(p=>p.id),commented:parseUsernames(commented),liked:parseUsernames(liked)});setActive(null);setLive(null);setSelPods([]);toast('Session saved!');if(refetchMembers)refetchMembers()}catch(e){toast('Error: '+e.message)}setSaving(false)}
   return (<div>
     <div className="flex items-center justify-between mb-4"><div className="text-[13px] font-bold text-white">Sessions</div>{!active&&<Btn size="sm" onClick={()=>setShowForm(!showForm)}>+ New Session</Btn>}</div>
     {showForm&&(<div className="bg-cyan-500/5 border border-cyan-500/25 rounded-xl p-4 mb-4">
@@ -397,7 +397,7 @@ function SessionsTab({ sessions, pods, createSession }) {
       {live&&(<div className="mb-3">{live.map(({pod,rows,ok,vio})=>(<div key={pod.id} className="mb-3"><div className="flex items-center gap-2 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-t-xl border-b-0"><Badge className={platformBadgeClass(pod.platform)+' text-[8px]'}>{platformShort(pod.platform)}</Badge><span className="text-[11px] font-bold text-white">{pod.name}</span><span className="ml-auto text-[10px] text-cyan-400">{ok} ok</span><span className="text-[10px] text-red-400">{vio} vios</span></div><div className="border border-zinc-800 border-t-0 rounded-b-xl overflow-hidden">{rows.map(m=>(<div key={m.id} className="grid gap-2 items-center px-4 py-2 border-b border-zinc-900 last:border-0" style={{gridTemplateColumns:'2fr 1fr 1fr'}}><span className="text-[11px] font-bold text-white">{m.username}</span><span className={m.dc?'text-cyan-400':'text-red-400'}>{m.dc?'✓':'✗'}</span><span className={m.dl?'text-cyan-400':'text-red-400'}>{m.dl?'✓':'✗'}</span></div>))}</div></div>))}</div>)}<button onClick={logSess} disabled={saving} className="w-full bg-[#fe2c55] text-white text-[12px] font-bold py-3 rounded-xl border-0 cursor-pointer hover:opacity-85 transition-opacity disabled:opacity-50 font-mono mb-2">{saving?'Saving…':live?'Log Violations + Save →':'Save Session →'}</button>
     </div>)}
     <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">History</div>
-    {!sessions.length?<Empty msg="No sessions yet."/>:sessions.map(s=>{const pn=(s.session_pods||[]).map(sp=>sp.pods?.name).join(' + ')||'—';return(<div key={s.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-3"><div className="p-3 flex items-center justify-between flex-wrap gap-2"><div><div className="text-[12px] font-bold text-white">{pn}</div><div className="text-[10px] text-zinc-500">{formatDate(s.session_date)}</div></div><div className="flex gap-3 text-[11px] font-bold"><span className="text-cyan-400">✓ {s.total_ok}</span><span className="text-red-400">✗ {s.total_violations}</span></div></div><div className="px-3 py-1.5 border-t border-zinc-900"><a href={s.post_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-cyan-400 font-mono hover:text-white truncate block">{s.post_url}</a></div></div>)})}
+    {!sessions.length?<Empty msg="No sessions yet."/>:sessions.map(s=>{const pn=(s.session_pods||[]).map(sp=>sp.pods?.name).join(' + ')||'—';return(<div key={s.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-3"><div className="p-3 flex items-center justify-between flex-wrap gap-2"><div><div className="text-[12px] font-bold text-white">{pn}</div><div className="text-[10px] text-zinc-500">{formatDate(s.session_date)}</div></div><div className="flex items-center gap-3 text-[11px] font-bold"><span className="text-cyan-400">✓ {s.total_ok}</span><span className="text-red-400">✗ {s.total_violations}</span><button onClick={async()=>{if(!window.confirm('Delete this session? Compliance scores will be recalculated.'))return;try{await deleteSession(s.id);if(refetchMembers)await refetchMembers();toast('Session deleted.')}catch(e){toast('Error: '+e.message)}}} className="text-[9px] font-bold text-red-400 border border-red-500/25 px-2 py-1 rounded bg-transparent cursor-pointer hover:bg-red-500/15 font-mono transition-colors">🗑 Delete</button></div></div><div className="px-3 py-1.5 border-t border-zinc-900"><a href={s.post_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-cyan-400 font-mono hover:text-white truncate block">{s.post_url}</a></div></div>)})}
   </div>)
 }
 

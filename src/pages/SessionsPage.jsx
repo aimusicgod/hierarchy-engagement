@@ -95,7 +95,7 @@ function HistCard({ session, onDelete, onUpdate }) {
 
 export default function SessionsPage() {
   const { profile } = useAuth()
-  const { talent, loading: tLoad } = useTalent()
+  const { talent, loading: tLoad, refetch: refetchTalent } = useTalent()
   const [talentId, setTalentId] = useState('')
   const { sessions, loading: sLoad, createSession, deleteSession } = useSessions(talentId || talent[0]?.id)
 
@@ -167,6 +167,7 @@ export default function SessionsPage() {
       })
       setActive(null); setLiveResults(null); setSelPods([])
       toast('Session saved!')
+      await refetchTalent()
     } catch (e) { toast('Error: ' + e.message) }
     setLogging(false)
   }
@@ -314,7 +315,9 @@ export default function SessionsPage() {
       </div>
       {sLoad ? <div className="flex justify-center py-8"><Spinner /></div>
         : !sessions.length ? <Empty msg="No sessions yet — run your first session above." />
-        : sessions.map(s => <HistCard key={s.id} session={s} onDelete={deleteSession} onUpdate={handleUpdateSession} />)}
+        : sessions.map(s => <HistCard key={s.id} session={s}
+            onDelete={async (id) => { await deleteSession(id); await refetchTalent() }}
+            onUpdate={handleUpdateSession} />)}
     </div>
   )
 }
